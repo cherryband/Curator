@@ -9,7 +9,7 @@ All selections are tagged, which means you can move each files to a different de
 
 The features do not end there, however.
 Planned roadmap includes folder tagging, autotagging based on parameters such as directory path, name, modified time, etc.,
-IETF tagging(embed tags into image file, readable on any supported image readers), sorting by colour, and auto move based on autotagging in the background.
+IPTC tagging(embed tags into image file, readable on any supported image readers), sorting by colour, and auto move based on autotagging in the background.
 
 # Why?
 I have a large library of photos, and managing them is, almost always, time consuming.
@@ -28,6 +28,6 @@ Making **non-linear selections** is also difficult, often requiring both keyboar
 
 And last but not least, directory-based management can only assign **a single property**,
 whereas tag-based management can assign *multiple properties* to a single element.
-Almost no Android app supports IETF tag reading, and no app supports batch tagging.
+Almost no Android app supports IPTC tag reading, and no app supports batch tagging.
 
 These are all motivations for the development, which is personal but I believe will fill a niche for mass tagging and/or mass moving photos in smartphones.
