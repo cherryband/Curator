@@ -26,7 +26,7 @@ Most desktop programs have limitation too, namely that you can only see photos i
 Such limitation makes mass operation practical only through text (e.g., file name, modified date, file type).
 Making **non-linear selections** is also difficult, often requiring both keyboard and mouse actions.
 
-And last but not least, directory-based management can only be assigned **a single property**,
+And last but not least, directory-based management can only assign **a single property**,
 whereas tag-based management can assign *multiple properties* to a single element.
 Almost no Android app supports IETF tag reading, and no app supports batch tagging.
 
