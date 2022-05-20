@@ -24,7 +24,7 @@ And copy/move is often *not* displayed as a prominent option in the app, unlike 
 
 Most desktop programs have limitation too, namely that you can only see photos in **isolation** or in **small thumbnails**.
 Such limitation makes mass operation practical only through text (e.g., file name, modified date, file type).
-Making non-linear selections is also difficult, often requiring both keyboard and mouse actions.
+Making **non-linear selections** is also difficult, often requiring both keyboard and mouse actions.
 
 And last but not least, directory-based management can only be assigned **a single property**,
 whereas tag-based management can assign *multiple properties* to a single element.
