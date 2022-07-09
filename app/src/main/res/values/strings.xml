@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">Curator</string>
-    <string name="tab_filters">Filters</string>
-    <string name="tab_selections">Selections</string>
-    <string name="tab_actions">Actions</string>
+    <string name="tab_directories">Directories</string>
+    <string name="tab_pictures">Pictures</string>
+    <string name="error_storage_permission_denied">Access To Storage Denied</string>
+    <string name="error_storage_access_rationale">To manage gallery, this app requires storage permission.</string>
+    <string name="button_retry_grant_permission">Grant Permission</string>
 </resources>

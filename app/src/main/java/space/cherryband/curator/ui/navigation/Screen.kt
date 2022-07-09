@@ -8,8 +8,7 @@ import androidx.compose.material.icons.twotone.PhotoAlbum
 import androidx.compose.ui.graphics.vector.ImageVector
 import space.cherryband.curator.R
 
-sealed class Screen(val route: String, @StringRes val descriptionRId: Int, val icon: ImageVector) {
-    object Filters: Screen("filters", R.string.tab_filters, Icons.TwoTone.Filter)
-    object Selections: Screen("selections", R.string.tab_selections, Icons.TwoTone.PhotoAlbum)
-    object Actions: Screen("actions", R.string.tab_actions, Icons.TwoTone.CallToAction)
+sealed class Screen(@StringRes val descriptionRId: Int, val icon: ImageVector) {
+    object Filters: Screen(R.string.tab_directories, Icons.TwoTone.Filter)
+    object Selections: Screen(R.string.tab_pictures, Icons.TwoTone.PhotoAlbum)
 }

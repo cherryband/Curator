@@ -1,124 +1,170 @@
 package space.cherryband.curator.ui.compose
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Icon
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.Folder
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import space.cherryband.curator.data.RecursiveDirectory
-import space.cherryband.curator.data.RootDirectory
-import space.cherryband.curator.data.repo.UserSelectionRepository
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.MutableLiveData
+import space.cherryband.curator.data.repo.UserSelectionRepository.TAG_EMPTY
+import space.cherryband.curator.data.repo.UserSelectionRepository.TAG_HIDE
+import space.cherryband.curator.ui.viewmodel.DirectoriesViewModel
+import space.cherryband.curator.ui.viewmodel.DirectoryViewModel
+import space.cherryband.curator.util.diced
+import space.cherryband.curator.util.isHidden
+import space.cherryband.curator.util.leaf
+import space.cherryband.curator.util.parents
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun RecursiveDirectoryList(dirs: RootDirectory) {
-    LazyColumn{
-        dirs.children.sortedBy { it.name }.forEach {
-            recursiveDirectoryEmbed(it)
-        }
-        //items(dirs.children.sortedBy { it.name }){
-        //    RecursiveDirectoryComponent(dir = it)
-        //}
-    }
-}
-
-private fun LazyListScope.recursiveDirectoryEmbed(
-    rootDir: RecursiveDirectory
-) {
-    item {
-        val childExpanded = remember { mutableStateOf(false) }
-        RecursiveDirectoryComponent(dir = rootDir,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                childExpanded.value = !childExpanded.value
-            },)
-        if (childExpanded.value) {
-            UserSelectionRepository.select(rootDir, UserSelectionRepository.NO_TAG)
-            rootDir.children.forEach {
-                this@recursiveDirectoryEmbed.recursiveDirectoryEmbed(it)
+fun RecursiveDirectoryList(dirVM: DirectoriesViewModel = hiltViewModel()) {
+    val dirs = dirVM.getDirectories().observeAsState()
+    LazyColumn {
+        dirs.value?.let {
+            items(it) { dir ->
+                Surface(color = MaterialTheme.colors.background,
+                    modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(onClick = {
+                    }, onLongClick = {
+                        dir.toggleHide()
+                        dirVM.setExcludeHidden(true)
+                    })
+                ) {
+                    DirectoryComponent(dir)
+                }
             }
-        } else
-            UserSelectionRepository.select(rootDir, UserSelectionRepository.TAG_HIDE)
+        }
     }
 }
 
 @Composable
-fun RecursiveDirectoryComponent (dir: RecursiveDirectory, modifier: Modifier = Modifier) {
+fun DirectoryComponent (dir: DirectoryViewModel) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = modifier) {
+        horizontalArrangement = Arrangement.SpaceBetween) {
 
         Row (
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .padding(end = 8.dp, top = 8.dp, bottom = 8.dp),
-        ){
-            for (i in 0 until dir.depth){
-                Spacer(modifier = Modifier.padding(4.dp))
-                Surface(
-                    shape = CircleShape,
-                    modifier = Modifier.size(4.dp),
-                    color = if (i == dir.depth - 1) Color.White else Color.Gray,
-                ) {}
-            }
+        ) {
+            RecursiveTagIndicator(dir)
             Icon(
                 Icons.TwoTone.Folder,
                 null,
                 modifier = Modifier
                     .padding(start = 8.dp, end = 4.dp)
             )
-            Text(text = dir.name,
+            Text(text = dirNameHighlighted(dir),
                 modifier = Modifier.padding(4.dp))
         }
 
-        Text(text = "${dir.localImageCount}" +
-                if (dir.children.isNotEmpty())
-                    "/${dir.imageCount}"
-                else "",
-            modifier = Modifier.padding(4.dp))
+        dir.imageCount.observeAsState().value?.let {
+            Text(text = "$it", modifier = Modifier.padding(4.dp))
+        }
     }
-    //if (expanded.value){
-    //    dir.children.forEach {
-    //        RecursiveDirectoryComponent(dir = it)
-    //    }
-    //}
 }
 
-fun dirNameHighlighted(dir: RecursiveDirectory): AnnotatedString {
-    return with(AnnotatedString.Builder()){
+@Composable
+fun RecursiveTagIndicator(dir: DirectoryViewModel) {
+    dir.parentTags.forEach {
+        val tag = it?.observeAsState()
+        Spacer(modifier = Modifier.padding(4.dp))
+        Surface(
+            shape = CircleShape,
+            modifier = Modifier
+                .size(8.dp)
+                .alpha(if (it == dir.tag) 1f else 0.7f),
+            border = BorderStroke(1.5.dp, if (it == dir.tag) Color.White else Color.LightGray),
+            color = if (tag?.value.isHidden()) Color.Transparent else if (it == dir.tag) Color.White else Color.LightGray,
+        ) {}
+    }
+}
+
+@Composable
+fun dirNameHighlighted(dir: DirectoryViewModel): AnnotatedString {
+    val tag = dir.activeTag.observeAsState()
+    return buildAnnotatedString {
         pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-        pushStyle(SpanStyle(fontWeight = FontWeight.Light))
-        dir.parent?.apply { append(path) }
+        if (tag.value.isHidden())
+            pushStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
+        pushStyle(SpanStyle(fontWeight = FontWeight.Light, color = Color.Gray))
+        if (dir.path.parents.isNotEmpty())
+            append(dir.path.parents + "/")
         pop()
-        pushStyle(SpanStyle(fontWeight = FontWeight.SemiBold))
-        append(dir.name)
-        toAnnotatedString()
+        if (!tag.value.isHidden())
+            pushStyle(SpanStyle(fontWeight = FontWeight.SemiBold))
+        append(dir.path.leaf)
     }
 }
 
 @Preview
 @Composable
 fun DirectoryPreview() {
-    RecursiveDirectoryComponent(
-        RecursiveDirectory(null,"Screenshots", 10, 54613)
-    )
+    val empty = MutableLiveData(TAG_EMPTY)
+    val hide = MutableLiveData(TAG_HIDE)
+    Column (
+        modifier = Modifier.background(Color.White)
+    ){
+        DirectoryComponent(
+            DirectoryViewModel(
+                "DCIM/Screenshots",
+                MutableLiveData(10),
+                MutableLiveData(54613),
+                empty
+            )
+        )
+        DirectoryComponent(
+            DirectoryViewModel(
+                "DCIM/Camera",
+                MutableLiveData(50),
+                MutableLiveData(589453),
+                hide
+            )
+        )
+        DirectoryComponent(
+            DirectoryViewModel(
+                "Photos/Motion Picture/",
+                MutableLiveData(1),
+                MutableLiveData(270),
+                MutableLiveData(TAG_EMPTY),
+            )
+        )
+        DirectoryComponent(
+            DirectoryViewModel(
+                "Music/Monstercat/Gaming/Rocket League x Monstercat Vol. 5/Castaway",
+                MutableLiveData(1),
+                MutableLiveData(2400),
+                MutableLiveData(TAG_EMPTY),
+            )
+        )
+    }
 }

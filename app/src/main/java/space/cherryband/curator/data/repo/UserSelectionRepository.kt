@@ -1,46 +1,40 @@
 package space.cherryband.curator.data.repo
 
+import space.cherryband.curator.data.Directory
 import space.cherryband.curator.data.Image
-import space.cherryband.curator.data.RecursiveDirectory
+import space.cherryband.curator.util.parents
 
 object UserSelectionRepository {
-    private val selectedDirs = HashMap<RecursiveDirectory, Int>()
-    private val selectedPhotos = HashMap<Image, Int>()
-    public const val NO_TAG = Int.MIN_VALUE
-    public const val TAG_HIDE = Int.MAX_VALUE
+    private val selectedDirs = HashMap<String, Int>()
+    private val selectedPhotos = HashMap<Long, Int>()
 
-    fun select(dir: RecursiveDirectory, index: Int = 0) {
-        selectedDirs[dir] = index
+    const val TAG_EMPTY = Int.MAX_VALUE
+    const val TAG_HIDE = Int.MIN_VALUE
+
+    fun isSelected(dir: Directory) = selectedDirs.containsKey(dir.path)
+    fun isSelected(image: Image) = selectedPhotos.containsKey(image.id)
+
+    var Directory.tag
+        set(tag) = setTag(path, tag)
+        get() = selectedDirs[path] ?: TAG_EMPTY
+    var Image.tag
+        set(tag) = setTag(id, tag)
+        get() = selectedPhotos[id] ?: TAG_EMPTY
+
+    fun setTag(path: String, tag: Int?) {
+        if (tag != null && tag != TAG_EMPTY)
+            selectedDirs[path] = tag
+        else selectedDirs.remove(path)
     }
-    fun select(image: Image, index: Int = 0) {
-        selectedPhotos[image] = index
+    fun setTag(id: Long, tag: Int?) {
+        if (tag != null && tag != TAG_EMPTY)
+            selectedPhotos[id] = tag
+        else selectedPhotos.remove(id)
     }
 
-    fun select(vararg dirs: RecursiveDirectory, index: Int = 0) = dirs.forEach { select(it, index) }
-    fun select(vararg images: Image, index: Int = 0) = images.forEach { select(it, index) }
+    fun getTag(path: String) = selectedDirs[path] ?: TAG_EMPTY
+    fun getTag(id: Long) = selectedPhotos[id] ?: TAG_EMPTY
 
-    fun unselect(dir: RecursiveDirectory) {
-        selectedDirs.remove(dir)
-    }
-    fun unselect(image: Image) {
-        selectedPhotos.remove(image)
-    }
-
-    fun isSelected(dir: RecursiveDirectory) = selectedDirs.containsKey(dir)
-    fun isSelected(image: Image) = selectedPhotos.containsKey(image)
-
-    fun tag(dir: RecursiveDirectory) = selectedDirs.getOrElse(dir) { NO_TAG }
-    fun tag(image: Image) = selectedPhotos.getOrElse(image) { NO_TAG }
-
-    fun unselect(vararg dirs: RecursiveDirectory) = dirs.forEach { unselect(it) }
-    fun unselect(vararg images: Image) = images.forEach { unselect(it) }
-
-    fun dirSelection(): List<RecursiveDirectory> = selectedDirs.keys.toList()
-    fun hiddenDirs(): List<RecursiveDirectory> = selectedDirs
-        .filterValues { it == TAG_HIDE }
-        .keys.toList()
-    fun imageSelection(): List<Image> = selectedPhotos.keys.toList()
-
-    fun dirTags(): Map<RecursiveDirectory, Int> = selectedDirs.toMap()
-    fun imageTags(): Map<Image, Int> = selectedPhotos.toMap()
+    fun dirTags(): Map<String, Int> = selectedDirs.toMap()
+    fun imageTags(): Map<Long, Int> = selectedPhotos.toMap()
 }

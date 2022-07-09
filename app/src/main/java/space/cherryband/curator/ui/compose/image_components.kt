@@ -17,44 +17,83 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import space.cherryband.curator.data.Image
-import space.cherryband.curator.data.viewmodel.PhotosViewModel
 import space.cherryband.curator.ui.theme.Shapes
-import space.cherryband.curator.util.imageIdToUri
+import space.cherryband.curator.ui.viewmodel.ImageViewModel
+import space.cherryband.curator.ui.viewmodel.PhotosViewModel
+import space.cherryband.curator.util.toUri
 
 
 @Composable
-fun LivePhotoGrid(rowSize: Int, model: PhotosViewModel = hiltViewModel()){
+fun LivePhotoGrid(rowSize: Int, model: PhotosViewModel = hiltViewModel()) {
     val photos = model.getPhotos().observeAsState()
 
     photos.value?.let {
         if (rowSize == 1)
-            PhotoList(photos = it)
+            LivePhotoList(photos = it)
         else
-            PhotoGrid(rowSize = rowSize, photos = it)
+            LivePhotoGrid(rowSize = rowSize, photos = it)
     }
 }
 
 @Composable
-fun PhotoList(photos: List<Image>) {
+fun LivePhotoList(photos: List<ImageViewModel>) {
     LazyColumn {
         items(photos) { image ->
-            SquareAsyncImage(image = image)
+            LiveSquareAsyncImage(image)
         }
     }
 }
 
 @Composable
-fun LiveDirectoryPhotoGrid(rowSize: Int, model: PhotosViewModel = hiltViewModel()){
-    val photos = model.getPhotos().observeAsState()
+fun LivePhotoGrid(rowSize: Int, photos: List<ImageViewModel>) {
+    LazyColumn {
+        livePhotoGridEmbed(photos, rowSize)
+    }
+}
 
-    photos.value?.let {
-        DirectoryPhotoGrid(rowSize = rowSize, photos = it)
+private fun LazyListScope.livePhotoGridEmbed(
+    photos: List<ImageViewModel>,
+    rowSize: Int
+) {
+    items(photos.chunked(rowSize)) { row ->
+        LivePhotoRow(rowSize, row)
     }
 }
 
 @Composable
-fun DirectoryPhotoGrid(rowSize: Int, photos: List<Image>) {
+fun LivePhotoRow(rowSize: Int, row: List<ImageViewModel>) {
+    Row(
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier
+            .aspectRatio(rowSize.toFloat())
+            .padding(horizontal = 2.dp, vertical = 1.dp),
+    ) {
+        row.forEach { image -> LiveSquareAsyncImage(image) }
+        repeat(rowSize - row.size) {
+            Surface(
+                modifier = Modifier.aspectRatio(1f),
+                color = Color.Transparent
+            ) {}
+        }
+    }
+}
+
+@Composable
+fun PhotoList(photos: List<ImageViewModel>) {
+    LazyColumn {
+        items(photos) { image ->
+            SquareAsyncImage(image.id, image.name, image.description)
+        }
+    }
+}
+
+@Composable
+fun LiveSquareAsyncImage(image: ImageViewModel) {
+    SquareAsyncImage(image.id, image.name, image.description)
+}
+
+@Composable
+fun DirectoryPhotoGrid(rowSize: Int, photos: List<ImageViewModel>) {
     val photoDirMap = photos.groupBy { it.path }
     LazyColumn {
         photoDirMap.asIterable().forEach { entry ->
@@ -72,7 +111,7 @@ fun DirectoryPhotoGrid(rowSize: Int, photos: List<Image>) {
 }
 
 private fun LazyListScope.photoGridEmbed(
-    photos: List<Image>,
+    photos: List<ImageViewModel>,
     rowSize: Int
 ) {
     items(photos.chunked(rowSize)) { row ->
@@ -81,21 +120,21 @@ private fun LazyListScope.photoGridEmbed(
 }
 
 @Composable
-fun PhotoGrid(rowSize: Int, photos: List<Image>) {
+fun PhotoGrid(rowSize: Int, photos: List<ImageViewModel>) {
     LazyColumn {
         photoGridEmbed(photos, rowSize)
     }
 }
 
 @Composable
-fun PhotoRow(rowSize: Int, row: List<Image>) {
+fun PhotoRow(rowSize: Int, row: List<ImageViewModel>) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .aspectRatio(rowSize.toFloat())
             .padding(horizontal = 2.dp, vertical = 1.dp),
     ) {
-        row.forEach { image -> SquareAsyncImage(image = image) }
+        row.forEach { image -> SquareAsyncImage(image.id, image.name, image.description) }
         repeat(rowSize - row.size) {
             Surface(
                 modifier = Modifier.aspectRatio(1f),
@@ -106,7 +145,7 @@ fun PhotoRow(rowSize: Int, row: List<Image>) {
 }
 
 @Composable
-fun SquareAsyncImage(image: Image) {
+fun SquareAsyncImage(id: Long, name: String, desc: String?) {
     Surface(
         shape = Shapes.medium,
         color = MaterialTheme.colors.background,
@@ -117,14 +156,14 @@ fun SquareAsyncImage(image: Image) {
         Box {
             AsyncImage (
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(imageIdToUri(image.id))
+                    .data(id.toUri())
                     .crossfade(true)
                     .build(),
                 contentScale = ContentScale.Crop,
-                contentDescription = image.contentDescription,
+                contentDescription = desc,
                 modifier = Modifier.fillMaxSize()
             )
-            Text(text = image.name)
+            Text(text = name)
         }
     }
 }

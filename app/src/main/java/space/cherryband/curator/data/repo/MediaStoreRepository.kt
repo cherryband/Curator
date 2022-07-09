@@ -2,11 +2,17 @@ package space.cherryband.curator.data.repo
 
 import android.app.Application
 import android.content.ContentResolver
+import android.database.Cursor
 import android.os.Build
 import android.provider.MediaStore
-import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.liveData
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import space.cherryband.curator.data.*
-import space.cherryband.curator.util.getRelativeDirFromStorage
+import space.cherryband.curator.ui.viewmodel.DirectoryViewModel
+import space.cherryband.curator.util.relativeFromStorage
 
 object MediaStoreRepository {
     private val QUERY_SELECTIONS = arrayOf (
@@ -22,28 +28,27 @@ object MediaStoreRepository {
 
     private var mediaStoreStatus: String? = null
     private var photoList = HashMap<Long, Image>() // Long = _ID
-    private var rootDir = RootDirectory()
+    private var dirList = HashMap<String, Directory>() // String = path
     private lateinit var app: Application
 
     fun init(app: Application) {
         this.app = app
     }
 
-    fun getPhotos(): List<Image> {
-        update()
-        return photoList.values.toList()
-    }
+    fun getPhotos(): List<Image> = photoList.values.toList()
+    fun getDirectories(): List<Directory> = dirList.values.toList()
 
-    fun getImageDirectories(): RootDirectory {
-        update()
-        return rootDir
-    }
+    operator fun get(path: String): Directory? = dirList[path]
+    operator fun get(id: Long): Image? = photoList[id]
 
-    fun update(forceUpdate: Boolean = false) {
-        if (mediaStoreStatus != MediaStore.getVersion(app) || forceUpdate){
+    fun update(forceUpdate: Boolean = false): Boolean {
+        if (mediaStoreStatus != MediaStore.getVersion(app) || forceUpdate) {
             mediaStoreStatus = MediaStore.getVersion(app)
+
             queryMediaStore(app.contentResolver)
+            return true
         }
+        return false
     }
 
     private fun queryMediaStore(resolver: ContentResolver) {
@@ -61,9 +66,10 @@ object MediaStoreRepository {
                 QUERY_SELECTIONS
             )
         }
+        updateCache(query)
+    }
 
-        rootDir = RootDirectory()
-
+    private fun updateCache(query: Cursor?) {
         query?.use { cursor ->
             val columns = QUERY_SELECTIONS.map { column ->
                 cursor.getColumnIndexOrThrow(column)
@@ -72,30 +78,17 @@ object MediaStoreRepository {
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(columns[0]) // _ID
                 val displayName = cursor.getString(columns[1]) // DISPLAY_NAME
-                val imgPath = getRelativeDirFromStorage(cursor.getString(columns[2])) // RELATIVE_PATH or DATA
+                val imgPath = cursor.getString(columns[2]).relativeFromStorage() // RELATIVE_PATH or DATA
                 val imgSize = cursor.getLong(columns[3]) // SIZE
                 val modifiedTimestamp = cursor.getLong(columns[4]) // DATE_MODIFIED
 
-                if (photoList.containsKey(id)) {
-                    photoList[id]?.apply {
-                        name = displayName
-                        path = imgPath
-                        size = imgSize
-                        dateModified = modifiedTimestamp
-                    }
-                } else {
-                    photoList[id] = Image(id, displayName, imgPath, imgSize, modifiedTimestamp)
-                }
-
-                val dicedPath = dicedPath(imgPath)
-                val pathDir = rootDir.find(dicedPath)
-                if (pathDir != null) {
-                    pathDir.apply { localImageCount ++; sizeTally += imgSize }
-                } else {
-                    rootDir.add(dicedPath, 1, imgSize)
-                }
+                photoList[id] = Image(id, displayName, imgPath, imgSize, modifiedTimestamp)
             }
-            cursor.close()
         }
+
+        photoList.values
+            .groupBy { it.path }
+            .mapValues { entry -> Directory(entry.key, entry.value.size, entry.value.sumOf { it.size }) }
+            .toMap(dirList)
     }
 }
