@@ -6,15 +6,18 @@ import android.database.Cursor
 import android.os.Build
 import android.provider.MediaStore
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.liveData
+import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import space.cherryband.curator.data.*
-import space.cherryband.curator.ui.viewmodel.DirectoryViewModel
+import space.cherryband.curator.data.Directory
+import space.cherryband.curator.data.Image
 import space.cherryband.curator.util.relativeFromStorage
+import space.cherryband.curator.util.walk
 
 object MediaStoreRepository {
+    private val refreshIntervalMs: Long = 1000*10
+
     private val QUERY_SELECTIONS = arrayOf (
         MediaStore.Images.Media._ID,
         MediaStore.Images.Media.DISPLAY_NAME,
@@ -30,16 +33,27 @@ object MediaStoreRepository {
     private var photoList = HashMap<Long, Image>() // Long = _ID
     private var dirList = HashMap<String, Directory>() // String = path
     private lateinit var app: Application
+    private val _version = MutableLiveData(0)
+    private val _isEmpty = MutableLiveData(true)
 
     fun init(app: Application) {
         this.app = app
     }
 
-    fun getPhotos(): List<Image> = photoList.values.toList()
-    fun getDirectories(): List<Directory> = dirList.values.toList()
-
-    operator fun get(path: String): Directory? = dirList[path]
-    operator fun get(id: Long): Image? = photoList[id]
+    val photos: Flow<List<Image>> = flow {
+        while(true) {
+            update()
+            emit(photoList.values.toList())
+            delay(refreshIntervalMs)
+        }
+    }
+    val directories: Flow<List<Directory>> = flow {
+        while(true) {
+            update()
+            emit(dirList.values.toList())
+            delay(refreshIntervalMs)
+        }
+    }
 
     fun update(forceUpdate: Boolean = false): Boolean {
         if (mediaStoreStatus != MediaStore.getVersion(app) || forceUpdate) {
@@ -90,5 +104,18 @@ object MediaStoreRepository {
             .groupBy { it.path }
             .mapValues { entry -> Directory(entry.key, entry.value.size, entry.value.sumOf { it.size }) }
             .toMap(dirList)
+        _isEmpty.postValue(photoList.isEmpty())
+
+
+        val visited = dirList.values.map { it.path }.toSet()
+        val target = visited.flatMap { it.walk }.distinct() - visited
+        target.forEach {
+            if (!dirList.containsKey(it)) dirList[it] = Directory(it)
+        }
+
+        _version.postValue(version.value?.plus(1) ?: 0)
     }
+
+    val isEmpty: LiveData<Boolean> get() = _isEmpty
+    val version: LiveData<Int> get() = _version
 }

@@ -1,10 +1,5 @@
 package space.cherryband.curator.data
 
-import space.cherryband.curator.util.diced
-import space.cherryband.curator.util.leaf
-import space.cherryband.curator.util.parents
-import kotlin.math.min
-
 data class Image (
     val id: Long,
     val name: String,
@@ -13,8 +8,6 @@ data class Image (
     val dateModified: Long,
     val contentDescription: String? = null,
 ) {
-    infix fun isIn(dirs: Collection<Directory?>) = dirs.any { dir -> dir?.contains(this) ?: false }
-    infix fun isIn(dir: Directory) = dir contains this
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -35,8 +28,6 @@ data class Directory (
     val imageCount: Int = 0, // non-recursive count of images
     val sizeTally: Long = 0, // non-recursive sum of image.size
 ): Path {
-    val parents = path.parents
-
     infix fun contains(image: Image?) = image?.path == path
     infix fun contains(dir: Directory?) = dir != null && dir.path.startsWith(path)
 

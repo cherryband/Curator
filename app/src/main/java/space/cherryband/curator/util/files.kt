@@ -37,3 +37,8 @@ val String.leaf
     get() = if (this == "/") this else trimmed.substringAfterLast('/')
 val String.depth
     get() = diced.size
+val String.walk: List<String>
+    get() = trimmed.diced.runningReduce { root, dir ->
+        if (root.endsWith("/") || dir.endsWith("/")) "$root$dir".trimmed else "$root/$dir".trimmed
+    }
+fun String.isParentOf(other: String): Boolean = depth < other.depth && other.startsWith(this)

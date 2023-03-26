@@ -1,39 +1,19 @@
 package space.cherryband.curator.ui.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import space.cherryband.curator.data.Path
-import space.cherryband.curator.data.repo.UserSelectionRepository
 import space.cherryband.curator.data.repo.UserSelectionRepository.TAG_EMPTY
 import space.cherryband.curator.data.repo.UserSelectionRepository.TAG_HIDE
-import space.cherryband.curator.util.depth
+import space.cherryband.curator.data.repo.UserSelectionRepository.setTag
 
 data class DirectoryViewModel(
     override val path: String,
     val imageCount: MutableLiveData<Int>,
     val sizeTally: MutableLiveData<Long>,
-    val tag: MutableLiveData<Int>
+    val tag: LiveData<Int>,
  ): ViewModel(), Path {
-    val parentTags = arrayOfNulls<MutableLiveData<Int>>(path.depth)
-    val activeTag = MediatorLiveData<Int>()
-
-    fun addParentTag(liveTag: MutableLiveData<Int>, index: Int) {
-        if (! parentTags.contains(liveTag)) {
-            parentTags[index] = liveTag
-
-            activeTag.addSource(liveTag) {
-                val newActive = parentTags.indexOfFirst { parent -> parent != null && parent.value != TAG_EMPTY }
-
-                if (newActive < 0)
-                    activeTag.value = tag.value
-                else
-                    activeTag.value = parentTags[newActive]?.value
-            }
-        }
-    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -50,9 +30,8 @@ data class DirectoryViewModel(
         return path.hashCode()
     }
 
-    fun toggleHide() {
-        if (tag.value == TAG_HIDE) tag.value = TAG_EMPTY
-        else tag.value = TAG_HIDE
-        UserSelectionRepository.setTag(path, tag.value)
+    fun toggleHide(recursive: Boolean = true) {
+        if (tag.value == TAG_HIDE) path.setTag(TAG_EMPTY, recursive)
+        else path.setTag(TAG_HIDE, recursive)
     }
 }

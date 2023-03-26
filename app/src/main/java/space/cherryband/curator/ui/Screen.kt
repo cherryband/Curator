@@ -1,8 +1,7 @@
-package space.cherryband.curator.ui.navigation
+package space.cherryband.curator.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.twotone.CallToAction
 import androidx.compose.material.icons.twotone.Filter
 import androidx.compose.material.icons.twotone.PhotoAlbum
 import androidx.compose.ui.graphics.vector.ImageVector

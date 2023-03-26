@@ -5,4 +5,9 @@
     <string name="error_storage_permission_denied">Access To Storage Denied</string>
     <string name="error_storage_access_rationale">To manage gallery, this app requires storage permission.</string>
     <string name="button_retry_grant_permission">Grant Permission</string>
+    <string name="alert_no_image_visible">No Photos To Show</string>
+    <string name="desc_no_image_visible">Un-hide directories to see photos.</string>
+    <string name="alert_no_image_available">Whoa, No Photos!</string>
+    <string name="desc_no_image_available">You can\'t be untidy when you have nothing to clean!</string>
+    <string name="ask_grant_access_to_storage">Grant Access To Storage</string>
 </resources>

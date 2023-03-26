@@ -4,22 +4,35 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.twotone.HideImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.size.Precision
+import space.cherryband.curator.R
 import space.cherryband.curator.ui.theme.Shapes
 import space.cherryband.curator.ui.viewmodel.ImageViewModel
 import space.cherryband.curator.ui.viewmodel.PhotosViewModel
+import space.cherryband.curator.util.recursiveNatural
 import space.cherryband.curator.util.toUri
 
 
@@ -28,10 +41,33 @@ fun LivePhotoGrid(rowSize: Int, model: PhotosViewModel = hiltViewModel()) {
     val photos = model.getPhotos().observeAsState()
 
     photos.value?.let {
-        if (rowSize == 1)
-            LivePhotoList(photos = it)
-        else
-            LivePhotoGrid(rowSize = rowSize, photos = it)
+        if (it.isEmpty()) {
+            NoVisiblePhotos()
+        } else {
+            if (rowSize == 1)
+                LivePhotoList(photos = it)
+            else
+                DirectoryPhotoGrid(rowSize = rowSize, photos = it)
+        }
+    }
+}
+
+@Composable
+fun NoVisiblePhotos() {
+    Column (modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(Icons.TwoTone.HideImage, contentDescription = null, modifier = Modifier.size(240.dp).alpha(0.7f))
+        Text(
+            stringResource(id = R.string.alert_no_image_visible),
+            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        )
+        Text(
+            stringResource(id = R.string.desc_no_image_visible),
+            modifier = Modifier.padding(12.dp),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -94,7 +130,7 @@ fun LiveSquareAsyncImage(image: ImageViewModel) {
 
 @Composable
 fun DirectoryPhotoGrid(rowSize: Int, photos: List<ImageViewModel>) {
-    val photoDirMap = photos.groupBy { it.path }
+    val photoDirMap = photos.groupBy { it.path }.toSortedMap(recursiveNatural)
     LazyColumn {
         photoDirMap.asIterable().forEach { entry ->
             val dir = entry.key
@@ -158,6 +194,8 @@ fun SquareAsyncImage(id: Long, name: String, desc: String?) {
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(id.toUri())
                     .crossfade(true)
+                    .precision(Precision.INEXACT)
+                    .allowConversionToBitmap(true)
                     .build(),
                 contentScale = ContentScale.Crop,
                 contentDescription = desc,
